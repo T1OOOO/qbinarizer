@@ -1,0 +1,6 @@
+[submodule "3rdparty/libcrc"]
+	path = 3rdparty/libcrc
+	url = https://github.com/T1OOOO/libcrc.git
+[submodule "3rdparty/bitfield-c"]
+	path = 3rdparty/bitfield-c
+	url = https://github.com/T1OOOO/bitfield-c.git

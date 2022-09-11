@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(QBINARIZER VERSION 0.5.0
+project(QBINARIZER VERSION 0.5.2
                    DESCRIPTION "Library for encode and decode any binary data"
                    LANGUAGES CXX C)
 
@@ -107,6 +107,8 @@ set(binarizer_sources
     src/bitutils.cpp
     src/structencoder.cpp
     src/structdecoder.cpp
+    src/structreflector.h
+    src/structreflector.cpp
 )
 
 add_library(qbinarizer)
@@ -142,8 +144,15 @@ target_sources(qbinarizer PRIVATE ${sources})
 
 target_link_libraries(qbinarizer Qt${QT_VERSION_MAJOR}::Core)
 
-add_subdirectory(examples)
-add_subdirectory(tests)
+if (DEFINED QBINARIZER_BUILD_TEST)
+    add_subdirectory(tests)
+endif(QBINARIZER_BUILD_TEST)
 
-install(TARGETS qbinarizer
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+if (DEFINED QBINARIZER_BUILD_EXAMPLE)
+    add_subdirectory(examples)
+endif(QBINARIZER_BUILD_EXAMPLE)
+
+if (DEFINED QBINARIZER_INSTALL_PACKAGING)
+    install(TARGETS qbinarizer
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif(QBINARIZER_INSTALL_PACKAGING)

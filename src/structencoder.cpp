@@ -84,7 +84,7 @@ void StructEncoder::encodeList(const QVariantList &datafieldList,
 
 void StructEncoder::encodeMap(const QVariantMap &field,
                               const QVariantMap &fieldValue) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
   QVariant valueData = fieldValue[fieldName];
   if (valueData.isNull()) {
@@ -159,27 +159,40 @@ void StructEncoder::encodeMap(const QVariantMap &field,
     }
   }
 
-  if (type == "const") {
-    encodeConst(field, valueData);
-
-    return;
-  }
-
-  if (type == "unixtime") {
-    encodeUnixtime(field, valueData);
-
-    return;
-  }
-
-  if (type.startsWith("int") || type.startsWith("uint")) {
+  if (type.startsWith("int") || type.startsWith("uint") || (type == "float") ||
+      (type == "double")) {
     // Value
     encodeValue(field, valueData);
 
     return;
   }
 
+  if (type == "const") {
+    encodeConst(field, valueData);
+
+    return;
+  }
+
   if (type.startsWith("crc")) {
     encodeСrc(field);
+
+    return;
+  }
+
+  if (type == "struct") {
+    encodeStruct(field, valueData);
+
+    return;
+  }
+
+  if (type == "custom") {
+    encodeCustom(field, valueData);
+
+    return;
+  }
+
+  if (type == "unixtime") {
+    encodeUnixtime(field, valueData);
 
     return;
   }
@@ -197,17 +210,11 @@ void StructEncoder::encodeMap(const QVariantMap &field,
 
     return;
   }
-
-  if (type == "custom") {
-    encodeCustom(field, valueData);
-
-    return;
-  }
 }
 
 void StructEncoder::encodeValue(const QVariantMap &field,
                                 const QVariant &valueData) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const QString endian = fieldDescription["endian"].toString().toLower();
@@ -259,7 +266,7 @@ void StructEncoder::encodeValue(const QVariantMap &field,
 
 void StructEncoder::encodeBitfield(const QVariantMap &field,
                                    const QVariant &valueData) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   quint32 size = fieldDescription["size"].toUInt();
@@ -310,7 +317,7 @@ void StructEncoder::encodeBitfield(const QVariantMap &field,
 void StructEncoder::encodeBitfieldElement(const QVariantMap &field,
                                           const QVariant &value,
                                           QByteArray &data) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   QVariant valueData = value;
@@ -348,7 +355,7 @@ void StructEncoder::encodeBitfieldElement(const QVariantMap &field,
 }
 
 void StructEncoder::encodeСrc(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   auto *buf = qobject_cast<QBuffer *>(m_ds.device());
@@ -436,7 +443,7 @@ void StructEncoder::encodeСrc(const QVariantMap &field) {
 
 void StructEncoder::encodeRaw(const QVariantMap &field,
                               const QVariant &valueData) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const int size = fieldDescription["size"].toUInt();
@@ -451,7 +458,7 @@ void StructEncoder::encodeRaw(const QVariantMap &field,
 
 void StructEncoder::encodeCustom(const QVariantMap &field,
                                  const QVariant &valueData) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   if (!fieldDescription.contains("depend") ||
@@ -503,8 +510,26 @@ void StructEncoder::encodeCustom(const QVariantMap &field,
   updateEncodedTo(fieldName);
 }
 
+void StructEncoder::encodeStruct(const QVariantMap &field,
+                                 const QVariant &valueData) {
+  const QString &fieldName = field.firstKey();
+  const QVariantMap fieldDescription = field[fieldName].toMap();
+
+  const QVariantMap spec = fieldDescription["spec"].toMap();
+  const QString &specName = spec.firstKey();
+  QVariantMap specValue = spec[specName].toMap();
+  specValue["parent"] = fieldName;
+
+  m_encodedFields[specName] = specValue;
+
+  QVariantMap encodedField;
+  encodedField[specName] = specValue;
+  encodeMap(encodedField, valueData.toMap());
+  updateEncodedTo(fieldName);
+}
+
 void StructEncoder::encodeSkip(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const int size = fieldDescription["size"].toUInt();
@@ -518,7 +543,7 @@ void StructEncoder::encodeSkip(const QVariantMap &field) {
 
 void StructEncoder::encodeUnixtime(const QVariantMap &field,
                                    const QVariant &valueData) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const QString dateTimeStr = valueData.toString();
@@ -540,8 +565,9 @@ void StructEncoder::encodeUnixtime(const QVariantMap &field,
 
 void StructEncoder::encodeConst(const QVariantMap &field,
                                 const QVariant &valueData) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
+
   if (!fieldDescription.contains("value") ||
       (fieldDescription["value"].type() != QVariant::String)) {
     return;

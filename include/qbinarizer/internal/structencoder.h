@@ -1,5 +1,5 @@
 #ifndef STRUCTENCODER_H
-#define STRUCTDECODER_H
+#define STRUCTENCODER_H
 
 #include <QBuffer>
 #include <QByteArray>
@@ -42,6 +42,8 @@ protected:
   void encodeRaw(const QVariantMap &field, const QVariant &valueData);
 
   void encodeCustom(const QVariantMap &field, const QVariant &valueData);
+
+  void encodeStruct(const QVariantMap &field, const QVariant &valueData);
 
   void encodeSkip(const QVariantMap &field);
 

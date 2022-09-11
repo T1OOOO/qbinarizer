@@ -38,6 +38,8 @@ protected:
   QVariant decodeBitfieldElement(const QVariantMap &field,
                                  const QByteArray &data);
 
+  QVariantMap decodeStruct(const QVariantMap &field);
+
   QVariantMap decodeCustom(const QVariantMap &field);
 
   QVariantMap decodeRaw(const QVariantMap &field);

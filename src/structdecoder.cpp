@@ -90,7 +90,7 @@ QVariantList StructDecoder::decodeList(const QVariantList &fieldList) {
 }
 
 QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const QString type = fieldDescription["type"].toString();
@@ -158,24 +158,29 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
     }
   }
 
+  if (type.startsWith("int") || type.startsWith("uint") || (type == "float") ||
+      (type == "double")) {
+    return decodeValue(field);
+  }
+
   if (type == "const") {
     return decodeConst(field);
   }
 
-  if (type == "unixtime") {
-    return decodeUnixtime(field);
+  if (type.startsWith("crc")) {
+    return decodeCrc(field);
   }
 
-  if (type.startsWith("int") || type.startsWith("uint")) {
-    return decodeValue(field);
+  if (type == "struct") {
+    return decodeStruct(field);
   }
 
   if (type == "custom") {
     return decodeCustom(field);
   }
 
-  if (type.startsWith("crc")) {
-    return decodeCrc(field);
+  if (type == "unixtime") {
+    return decodeUnixtime(field);
   }
 
   // Raw data
@@ -192,7 +197,7 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
 }
 
 QVariantMap StructDecoder::decodeValue(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const QString endian = fieldDescription["endian"].toString().toLower();
@@ -255,7 +260,7 @@ QVariantMap StructDecoder::decodeValue(const QVariantMap &field) {
 }
 
 QVariantMap StructDecoder::decodeBitfield(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   if (!fieldDescription.contains("size")) {
@@ -309,7 +314,7 @@ QVariantMap StructDecoder::decodeBitfield(const QVariantMap &field) {
 
 QVariant StructDecoder::decodeBitfieldElement(const QVariantMap &field,
                                               const QByteArray &data) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   int size = fieldDescription["size"].toInt();
@@ -338,7 +343,7 @@ QVariant StructDecoder::decodeBitfieldElement(const QVariantMap &field,
 }
 
 QVariantMap StructDecoder::decodeCustom(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   if (!fieldDescription.contains("depend") ||
@@ -389,8 +394,19 @@ QVariantMap StructDecoder::decodeCustom(const QVariantMap &field) {
   return res;
 }
 
+QVariantMap StructDecoder::decodeStruct(const QVariantMap &field) {
+  const QString &fieldName = field.firstKey();
+  const QVariantMap fieldDescription = field[fieldName].toMap();
+  const QVariantMap spec = fieldDescription["spec"].toMap();
+
+  QVariantMap res;
+  res[fieldName] = decodeMap(spec);
+
+  return res;
+}
+
 QVariantMap StructDecoder::decodeRaw(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   int size = fieldDescription["size"].toUInt();
@@ -408,7 +424,7 @@ QVariantMap StructDecoder::decodeRaw(const QVariantMap &field) {
 }
 
 QVariantMap StructDecoder::decodeCrc(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   auto *buf = qobject_cast<QBuffer *>(m_ds.device());
@@ -494,7 +510,7 @@ QVariantMap StructDecoder::decodeCrc(const QVariantMap &field) {
 }
 
 QVariantMap StructDecoder::decodeUnixtime(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
   const QString endian = fieldDescription["endian"].toString().toLower();
@@ -520,7 +536,7 @@ QVariantMap StructDecoder::decodeUnixtime(const QVariantMap &field) {
 }
 
 QVariantMap StructDecoder::decodeConst(const QVariantMap &field) {
-  const QString fieldName = field.firstKey();
+  const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
   if (!fieldDescription.contains("value") ||
       (fieldDescription["value"].type() != QVariant::String)) {

@@ -48,7 +48,7 @@ public:
   template <typename T>
   static int setValuesString(T *gadget, const QVariantMap &valueMap) {
     const QMetaObject &metaObject = T::staticMetaObject;
-    const int size = setValuesInfo(metaObject, valueMap, gadget);
+    const int size = setValuesInfo(metaObject, valueMap, gadget, 0);
 
     return size;
   }

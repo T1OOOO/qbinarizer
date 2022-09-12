@@ -7,9 +7,11 @@
 #include <QObject>
 #include <QVariantList>
 
+#include "qbinarizer/export/qbinarizer_export.h"
+
 namespace qbinarizer {
 
-class StructEncoder : public QObject {
+class QBINARIZER_EXPORT StructEncoder : public QObject {
   Q_OBJECT
 public:
   explicit StructEncoder(QObject *parent = nullptr);

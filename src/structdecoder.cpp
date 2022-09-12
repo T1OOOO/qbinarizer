@@ -14,8 +14,9 @@ StructDecoder::StructDecoder(QObject *parent) : QObject{parent} {}
 QVariantList StructDecoder::decode(const QString &datafieldListStr,
                                    const QByteArray &data) {
   const QVariantList datafieldList = parseJson(datafieldListStr);
+  QVariantList valueList = decode(datafieldList, data);
 
-  return decode(datafieldList, data);
+  return valueList;
 }
 
 QVariantList StructDecoder::decode(const QVariantList &datafieldList,
@@ -635,6 +636,39 @@ void StructDecoder::setDecodedValue(const QString &name,
   decodedField["value"] = value;
 
   m_decodedFields[name] = decodedField;
+}
+
+QVariantList StructDecoder::extractValues(const QVariant &value) {
+  QVariantList valueList;
+
+  if (value.type() == QVariant::Map) {
+    const QVariantMap subValueMap = value.toMap();
+    const QStringList keyList = subValueMap.keys();
+    for (const auto &key : keyList) {
+      const QVariant &subValue = subValueMap[key];
+      if (subValue.type() != QVariant::Map &&
+          subValue.type() != QVariant::List) {
+        QVariantMap resValue;
+        resValue[key] = subValue;
+        valueList.append(resValue);
+      } else {
+        const QVariantList subValueList = extractValues(subValue);
+
+        valueList.append(subValueList);
+      }
+    }
+  } else if (value.type() == QVariant::List) {
+    const QVariantList subValueList = value.toList();
+    for (const auto &subValue : subValueList) {
+      const QVariantList subValueList = extractValues(subValue);
+
+      valueList.append(subValueList);
+    }
+  } else {
+    valueList.push_back(value);
+  }
+
+  return valueList;
 }
 
 } // namespace qbinarizer

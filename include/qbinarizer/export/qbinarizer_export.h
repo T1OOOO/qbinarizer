@@ -9,15 +9,15 @@
 #  ifndef QBINARIZER_EXPORT
 #    ifdef qbinarizer_EXPORTS
         /* We are building this library */
-#      define QBINARIZER_EXPORT 
+#      define QBINARIZER_EXPORT __attribute__((visibility("default")))
 #    else
         /* We are using this library */
-#      define QBINARIZER_EXPORT 
+#      define QBINARIZER_EXPORT __attribute__((visibility("default")))
 #    endif
 #  endif
 
 #  ifndef QBINARIZER_NO_EXPORT
-#    define QBINARIZER_NO_EXPORT 
+#    define QBINARIZER_NO_EXPORT __attribute__((visibility("hidden")))
 #  endif
 #endif
 

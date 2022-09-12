@@ -7,9 +7,11 @@
 #include <QObject>
 #include <QVariantMap>
 
+#include "qbinarizer/export/qbinarizer_export.h"
+
 namespace qbinarizer {
 
-class StructDecoder : public QObject {
+class QBINARIZER_EXPORT StructDecoder : public QObject {
   Q_OBJECT
 public:
   explicit StructDecoder(QObject *parent = nullptr);
@@ -23,6 +25,8 @@ public:
    * @brief clear Clear internal state of object
    */
   void clear();
+
+  static QVariantList extractValues(const QVariant &value);
 
 protected:
   void decode();

@@ -93,30 +93,23 @@ QVariantList StructDecoder::decodeList(const QVariantList &fieldList) {
 QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
   const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
-
   const QString type = fieldDescription["type"].toString();
-  if (type == "array") {
 
-    QVariantMap fieldDescriptionNew = fieldDescription;
-    fieldDescriptionNew["type"] = fieldDescription["subtype"];
-    fieldDescriptionNew.remove("subtype");
-
-    QVariantMap fieldNew;
-    fieldNew[fieldName] = fieldDescriptionNew;
-
-    return decodeMap(fieldNew);
+  const qint64 oldPos = m_buf.pos();
+  qint64 newPos = -1;
+  if (fieldDescription.contains("pos") &&
+      fieldDescription["pos"].canConvert<qint64>()) {
+    newPos = fieldDescription["pos"].toLongLong();
+    m_buf.seek(newPos);
   }
 
   QVariantMap decodedField;
   decodedField["name"] = fieldName;
-
-  auto *buf = qobject_cast<QBuffer *>(m_ds.device());
-  if (buf != nullptr) {
-    decodedField["from"] = buf->pos();
-  }
-
+  decodedField["from"] = m_buf.pos();
   decodedField["type"] = type;
   m_decodedFields[fieldName] = decodedField;
+
+  QVariantMap valueRes;
 
   if (fieldDescription.contains("count")) {
     int count = 0;
@@ -138,6 +131,7 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
       for (int i = 0; i < count; i++) {
         QVariantMap subFieldDescription = fieldDescription;
         subFieldDescription["count"] = 1;
+        subFieldDescription.remove("pos");
 
         QVariantMap subField;
         subField[fieldName] = subFieldDescription;
@@ -155,46 +149,49 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
       res["name"] = fieldName;
       res["value"] = subResList;
 
-      return toMap(res);
+      valueRes = toMap(res);
+      if (newPos >= 0) {
+        m_buf.seek(oldPos);
+
+        return valueRes;
+      }
     }
   }
 
-  if (type.startsWith("int") || type.startsWith("uint") || (type == "float") ||
-      (type == "double")) {
-    return decodeValue(field);
+  if (type == "array") {
+    QVariantMap fieldDescriptionNew = fieldDescription;
+    fieldDescriptionNew["type"] = fieldDescription["subtype"];
+    fieldDescriptionNew.remove("subtype");
+    fieldDescriptionNew.remove("pos");
+
+    QVariantMap fieldNew;
+    fieldNew[fieldName] = fieldDescriptionNew;
+
+    valueRes = decodeMap(fieldNew);
+  } else if (type.startsWith("int") || type.startsWith("uint") ||
+             (type == "float") || (type == "double")) {
+    valueRes = decodeValue(field);
+  } else if (type == "const") {
+    valueRes = decodeConst(field);
+  } else if (type.startsWith("crc")) {
+    valueRes = decodeCrc(field);
+  } else if (type == "struct") {
+    valueRes = decodeStruct(field);
+  } else if (type == "custom") {
+    valueRes = decodeCustom(field);
+  } else if (type == "unixtime") {
+    valueRes = decodeUnixtime(field);
+  } else if (type == "raw") {
+    valueRes = decodeRaw(field);
+  } else if (type == "bitfield") {
+    valueRes = decodeBitfield(field);
   }
 
-  if (type == "const") {
-    return decodeConst(field);
+  if (newPos >= 0) {
+    m_buf.seek(oldPos);
   }
 
-  if (type.startsWith("crc")) {
-    return decodeCrc(field);
-  }
-
-  if (type == "struct") {
-    return decodeStruct(field);
-  }
-
-  if (type == "custom") {
-    return decodeCustom(field);
-  }
-
-  if (type == "unixtime") {
-    return decodeUnixtime(field);
-  }
-
-  // Raw data
-  if (type == "raw") {
-    return decodeRaw(field);
-  }
-
-  // Bitfield
-  if (type == "bitfield") {
-    return decodeBitfield(field);
-  }
-
-  return {};
+  return valueRes;
 }
 
 QVariantMap StructDecoder::decodeValue(const QVariantMap &field) {

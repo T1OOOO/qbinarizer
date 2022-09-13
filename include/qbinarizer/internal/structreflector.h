@@ -6,7 +6,11 @@
 #include <QMetaProperty>
 #include <QObject>
 
-class StructReflector {
+#include "qbinarizer/export/qbinarizer_export.h"
+
+namespace qbinarizer {
+
+class QBINARIZER_EXPORT StructReflector {
 public:
   StructReflector();
 
@@ -60,5 +64,7 @@ public:
     return str;
   }
 };
+
+} // namespace qbinarizer
 
 #endif // STRUCTREFLECTOR_H

@@ -4,12 +4,19 @@
 #include <QObject>
 #include <QVariantList>
 #include <QVariantMap>
-#include <tinyexpr.h>
 
-class ExprMaster : public QObject {
+#include "qbinarizer/export/qbinarizer_export.h"
+
+struct te_expr;
+struct te_variable;
+
+namespace qbinarizer {
+
+class QBINARIZER_EXPORT ExprMaster : public QObject {
   Q_OBJECT
 public:
   explicit ExprMaster(QObject *parent = nullptr);
+
   ~ExprMaster() override;
 
   bool isInit() const;
@@ -34,5 +41,7 @@ private:
   std::vector<te_variable> m_exprVarVec;
   te_expr *m_expr;
 };
+
+} // namespace qbinarizer
 
 #endif // EXPRMASTER_H

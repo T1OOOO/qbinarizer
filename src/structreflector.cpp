@@ -1,6 +1,8 @@
 #include "internal/structreflector.h"
 #include "jsonutils.h"
 
+namespace qbinarizer {
+
 StructReflector::StructReflector() {}
 
 QVariantList StructReflector::createFieldSpecList(const QMetaObject *object) {
@@ -297,7 +299,4 @@ StructReflector::getValuesInfo(const QMetaObject &metaObject,
   return info;
 }
 
-// void StructReflector::setValusString(const void *object, const QString &str)
-// {
-//   property.readOnGadget(gadget);
-// }
+} // namespace qbinarizer

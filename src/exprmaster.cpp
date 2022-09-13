@@ -1,5 +1,9 @@
 #include "internal/exprmaster.h"
 
+#include <tinyexpr.h>
+
+namespace qbinarizer {
+
 ExprMaster::ExprMaster(QObject *parent) : QObject{parent}, m_expr(nullptr) {}
 
 ExprMaster::~ExprMaster() { clear(); }
@@ -57,8 +61,8 @@ void ExprMaster::clear() {
 
   m_exprVarVec.clear();
   m_varMap.clear();
-  m_varList.clear();
-  m_exprStr.clear();
+  // m_varList.clear();
+  //  m_exprStr.clear();
 }
 
 bool ExprMaster::compile() {
@@ -105,3 +109,5 @@ bool ExprMaster::isInit() const {
 
   return init;
 }
+
+} // namespace qbinarizer

@@ -16,42 +16,46 @@ class QBINARIZER_EXPORT StructEncoder : public QObject {
 public:
   explicit StructEncoder(QObject *parent = nullptr);
 
-  QByteArray encode(const QString &datafieldListStr,
-                    const QString &valueListStr = QString());
+  std::tuple<QByteArray, QVariantList>
+  encode(const QString &datafieldListStr,
+         const QString &valueListStr = QString());
 
-  QByteArray encode(const QVariantList &datafieldList,
-                    const QVariantList &valueList = QVariantList());
+  std::tuple<QByteArray, QVariantList>
+  encode(const QVariantList &datafieldList,
+         const QVariantList &valueList = QVariantList());
 
   void clear();
 
 protected:
   void encode();
 
-  void encodeList(const QVariantList &datafieldList,
-                  const QVariantList &valueList);
+  QVariantList encodeList(const QVariantList &datafieldList,
+                          const QVariantList &valueList);
 
-  void encodeMap(const QVariantMap &datafield, const QVariantMap &value);
+  QVariantMap encodeMap(const QVariantMap &datafield, const QVariantMap &value);
 
-  void encodeValue(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeValue(const QVariantMap &field, const QVariant &valueData);
 
-  void encodeBitfield(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeBitfield(const QVariantMap &field,
+                             const QVariant &valueData);
 
-  void encodeBitfieldElement(const QVariantMap &field, const QVariant &value,
-                             QByteArray &data);
+  QVariantMap encodeBitfieldElement(const QVariantMap &field,
+                                    const QVariant &value, QByteArray &data);
 
-  void encodeСrc(const QVariantMap &field);
+  QVariantMap encodeСrc(const QVariantMap &field);
 
-  void encodeRaw(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeRaw(const QVariantMap &field, const QVariant &valueData);
 
-  void encodeSkip(const QVariantMap &field);
+  QVariantMap encodeSkip(const QVariantMap &field);
 
-  void encodeCustom(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeCustom(const QVariantMap &field, const QVariant &valueData);
 
-  void encodeStruct(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeStruct(const QVariantMap &field, const QVariant &valueData);
 
-  void encodeUnixtime(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeUnixtime(const QVariantMap &field,
+                             const QVariant &valueData);
 
-  void encodeConst(const QVariantMap &field, const QVariant &valueData);
+  QVariantMap encodeConst(const QVariantMap &field, const QVariant &valueData);
 
   void updateEncodedTo(const QString &name);
 
@@ -63,6 +67,7 @@ private:
   QVariantMap m_encodedFields;
   QVariantList m_datafieldList;
   QVariantList m_valueList;
+  QVariantList m_encodeList;
 
   QBuffer m_buf;
   QDataStream m_ds;

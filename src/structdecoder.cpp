@@ -53,7 +53,7 @@ void StructDecoder::clear() {
 
 void StructDecoder::decode() { m_resList = decodeList(m_datafieldList); }
 
-QVariantMap toMap(const QVariantMap &field) {
+inline QVariantMap toMap(const QVariantMap &field) {
   const QString &name = field["name"].toString();
 
   QVariantMap res;

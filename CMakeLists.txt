@@ -61,11 +61,13 @@ set(header_path ${QBINARIZER_SOURCE_DIR}/include/qbinarizer)
 set(dependency_path ${QBINARIZER_SOURCE_DIR}/3rdparty)
 set(bitfield_path ${dependency_path}/bitfield-c/src)
 set(crc_path ${dependency_path}/libcrc)
+set(tinyexpr_path ${dependency_path}/tinyexpr)
 set(source_path ${QBINARIZER_SOURCE_DIR}/src)
 
 include_directories(${header_path})
 include_directories(${bitfield_path})
 include_directories(${crc_path}/include)
+include_directories(${tinyexpr_path})
 
 set(bitfield_sources
     ${bitfield_path}/bitfield/bitfield.h
@@ -90,14 +92,23 @@ set(crc_sources
     ${crc_path}/src/nmea-chk.c
 )
 
+set(tinyexpr_sources
+    ${tinyexpr_path}/tinyexpr.h
+    ${tinyexpr_path}/tinyexpr.c
+)
+
 set(public_headers
     ${header_path}/StructEncoder
     ${header_path}/StructDecoder
+    ${header_path}/StructReflector
+    ${header_path}/ExprMaster
 )
 
 set(private_headers
     ${header_path}/internal/structencoder.h
     ${header_path}/internal/structdecoder.h
+    ${header_path}/internal/structreflector.h
+    ${header_path}/internal/exprmaster.h
 )
 
 set(binarizer_sources
@@ -107,8 +118,8 @@ set(binarizer_sources
     src/bitutils.cpp
     src/structencoder.cpp
     src/structdecoder.cpp
-    src/structreflector.h
     src/structreflector.cpp
+    src/exprmaster.cpp
 )
 
 add_library(qbinarizer)
@@ -125,12 +136,14 @@ set(sources
     ${private_headers}
     ${bitfield_sources}
     ${crc_sources}
+    ${tinyexpr_sources}
     ${binarizer_sources}
 )
 
 source_group(TREE ${bitfield_path} FILES ${bitfield_sources})
 source_group(TREE ${crc_path} FILES ${crc_sources})
-source_group(TREE ${QBINARIZER_SOURCE_DIR} FILES ${binirizer_sources})
+source_group(TREE ${tinyexpr_path} FILES ${tinyexpr_sources})
+source_group(TREE ${QBINARIZER_SOURCE_DIR} FILES ${binarizer_sources})
 
 target_include_directories(qbinarizer
     PUBLIC

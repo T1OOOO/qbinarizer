@@ -13,7 +13,7 @@
 #include <QJsonDocument>
 #include <qbinarizer/StructDecoder>
 #include <qbinarizer/StructEncoder>
-#include <src/structreflector.h>
+#include <qbinarizer/StructReflector>
 
 int main(int argc, char *argv[]) {
   QCoreApplication app(argc, argv);

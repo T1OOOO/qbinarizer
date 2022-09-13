@@ -1,8 +1,6 @@
 #ifndef STRUCTREFLECTOR_H
 #define STRUCTREFLECTOR_H
 
-#include "jsonutils.h"
-
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaProperty>

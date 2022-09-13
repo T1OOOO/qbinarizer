@@ -1,4 +1,5 @@
-#include "structreflector.h"
+#include "internal/structreflector.h"
+#include "jsonutils.h"
 
 StructReflector::StructReflector() {}
 

@@ -86,42 +86,26 @@ void StructEncoder::encodeMap(const QVariantMap &field,
                               const QVariantMap &fieldValue) {
   const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
+  const QString type = fieldDescription["type"].toString();
+
   QVariant valueData = fieldValue[fieldName];
   if (valueData.isNull()) {
     valueData = fieldDescription["value"];
   }
 
-  const QString type = fieldDescription["type"].toString();
-  if (type == "array") {
-    QVariantMap fieldDescriptionNew = fieldDescription;
-    fieldDescriptionNew["type"] = fieldDescription["subtype"];
-    fieldDescriptionNew.remove("subtype");
-
-    QVariantMap fieldNew;
-    fieldNew[fieldName] = fieldDescriptionNew;
-
-    encodeMap(fieldNew, fieldValue);
-
-    return;
+  qint64 newPos = -1;
+  if (fieldDescription.contains("pos") &&
+      fieldDescription["pos"].canConvert<qint64>()) {
+    newPos = fieldDescription["pos"].toLongLong();
+    m_buf.seek(newPos);
   }
 
   QVariantMap encodedField;
   encodedField["name"] = fieldName;
-
-  auto *buf = qobject_cast<QBuffer *>(m_ds.device());
-  if (buf != nullptr) {
-    encodedField["from"] = m_buf.pos();
-  }
+  encodedField["from"] = m_buf.pos();
   encodedField["value"] = generateEncodedValue(fieldName, valueData);
-
   encodedField["type"] = type;
   m_encodedFields[fieldName] = encodedField;
-
-  if (type == "skip") {
-    encodeSkip(fieldDescription);
-
-    return;
-  }
 
   if (fieldDescription.contains("count")) {
     int count = 0;
@@ -138,6 +122,11 @@ void StructEncoder::encodeMap(const QVariantMap &field,
 
     if (count > 1) {
       const QVariantList valueList = valueData.toList();
+      QVariantMap subFieldDescription = fieldDescription;
+      subFieldDescription["count"] = 1;
+
+      QVariantMap subField;
+      subField[fieldName] = subFieldDescription;
 
       for (int i = 0; i < count; i++) {
         QVariantMap subValue;
@@ -146,12 +135,6 @@ void StructEncoder::encodeMap(const QVariantMap &field,
           subValue[fieldName] = valueList.at(i);
         }
 
-        QVariantMap subFieldDescription = fieldDescription;
-        subFieldDescription["count"] = 1;
-
-        QVariantMap subField;
-        subField[fieldName] = subFieldDescription;
-
         encodeMap(subField, subValue);
       }
 
@@ -159,56 +142,34 @@ void StructEncoder::encodeMap(const QVariantMap &field,
     }
   }
 
-  if (type.startsWith("int") || type.startsWith("uint") || (type == "float") ||
-      (type == "double")) {
-    // Value
+  if (type == "array") {
+    QVariantMap fieldDescriptionNew = fieldDescription;
+    fieldDescriptionNew["type"] = fieldDescription["subtype"];
+    fieldDescriptionNew.remove("subtype");
+
+    QVariantMap fieldNew;
+    fieldNew[fieldName] = fieldDescriptionNew;
+
+    encodeMap(fieldNew, fieldValue);
+  } else if (type.startsWith("int") || type.startsWith("uint") ||
+             (type == "float") || (type == "double")) {
     encodeValue(field, valueData);
-
-    return;
-  }
-
-  if (type == "const") {
+  } else if (type == "const") {
     encodeConst(field, valueData);
-
-    return;
-  }
-
-  if (type.startsWith("crc")) {
+  } else if (type.startsWith("crc")) {
     encodeСrc(field);
-
-    return;
-  }
-
-  if (type == "struct") {
+  } else if (type == "struct") {
     encodeStruct(field, valueData);
-
-    return;
-  }
-
-  if (type == "custom") {
+  } else if (type == "custom") {
     encodeCustom(field, valueData);
-
-    return;
-  }
-
-  if (type == "unixtime") {
+  } else if (type == "unixtime") {
     encodeUnixtime(field, valueData);
-
-    return;
-  }
-
-  // Raw
-  if (type == "raw") {
+  } else if (type == "raw") {
     encodeRaw(field, valueData);
-
-    return;
-  }
-
-  // Bitfield
-  if (type == "bitfield") {
+  } else if (type == "skip") {
+    encodeSkip(fieldDescription);
+  } else if (type == "bitfield") {
     encodeBitfield(field, valueData);
-
-    return;
   }
 }
 
@@ -358,15 +319,10 @@ void StructEncoder::encodeСrc(const QVariantMap &field) {
   const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
-  auto *buf = qobject_cast<QBuffer *>(m_ds.device());
-  if (buf == nullptr) {
-    return;
-  }
-
   const QString type = fieldDescription["type"].toString();
   const QString mode = type.mid(3);
   const int crcSize = mode.toInt() / CHAR_WIDTH;
-  int to = buf->pos() - 1;
+  int to = m_buf.pos() - 1;
   if (to < 0) {
     return;
   }
@@ -400,7 +356,7 @@ void StructEncoder::encodeСrc(const QVariantMap &field) {
     return;
   }
 
-  const QByteArray &data = buf->buffer();
+  const QByteArray &data = m_buf.buffer();
   if (to >= data.size()) {
     return;
   }
@@ -411,9 +367,9 @@ void StructEncoder::encodeСrc(const QVariantMap &field) {
 
   if (fieldDescription.contains("include") &&
       fieldDescription["include"].toBool()) {
-    const int pos = buf->pos();
+    const int pos = m_buf.pos();
 
-    buf->seek(pos - crcSize);
+    m_buf.seek(pos - crcSize);
   }
 
   quint64 crc = 0;
@@ -436,7 +392,7 @@ void StructEncoder::encodeСrc(const QVariantMap &field) {
   }
 
   QVariantMap encodedField = m_encodedFields[fieldName].toMap();
-  encodedField["to"] = buf->pos();
+  encodedField["to"] = m_buf.pos();
   encodedField["value"] = crc;
   m_encodedFields[fieldName] = encodedField;
 }
@@ -598,11 +554,6 @@ void StructEncoder::encodeConst(const QVariantMap &field,
 
 void StructEncoder::updateEncodedTo(const QString &name) {
   if (!m_encodedFields.contains(name)) {
-    return;
-  }
-
-  auto *buf = qobject_cast<QBuffer *>(m_ds.device());
-  if (buf == nullptr) {
     return;
   }
 

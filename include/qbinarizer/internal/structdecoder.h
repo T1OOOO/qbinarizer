@@ -48,6 +48,8 @@ protected:
 
   QVariantMap decodeRaw(const QVariantMap &field);
 
+  QVariantMap decodeSkip(const QVariantMap &field);
+
   QVariantMap decodeValue(const QVariantMap &field);
 
   QVariantMap decodeCrc(const QVariantMap &field);

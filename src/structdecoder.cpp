@@ -95,7 +95,7 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
   const QVariantMap fieldDescription = field[fieldName].toMap();
   const QString type = fieldDescription["type"].toString();
 
-  const qint64 oldPos = m_buf.pos();
+  // const qint64 oldPos = m_buf.pos();
   qint64 newPos = -1;
   if (fieldDescription.contains("pos") &&
       fieldDescription["pos"].canConvert<qint64>()) {
@@ -108,8 +108,6 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
   decodedField["from"] = m_buf.pos();
   decodedField["type"] = type;
   m_decodedFields[fieldName] = decodedField;
-
-  QVariantMap valueRes;
 
   if (fieldDescription.contains("count")) {
     int count = 0;
@@ -127,15 +125,15 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
     }
 
     if (count > 1) {
+      QVariantMap subFieldDescription = fieldDescription;
+      subFieldDescription["count"] = 1;
+      subFieldDescription.remove("pos");
+
+      QVariantMap subField;
+      subField[fieldName] = subFieldDescription;
+
       QVariantList subResList;
       for (int i = 0; i < count; i++) {
-        QVariantMap subFieldDescription = fieldDescription;
-        subFieldDescription["count"] = 1;
-        subFieldDescription.remove("pos");
-
-        QVariantMap subField;
-        subField[fieldName] = subFieldDescription;
-
         const QVariantMap subRes = decodeMap(subField);
         if (subRes.isEmpty()) {
           continue;
@@ -149,14 +147,15 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
       res["name"] = fieldName;
       res["value"] = subResList;
 
-      valueRes = toMap(res);
-      if (newPos >= 0) {
-        m_buf.seek(oldPos);
+      //      if (newPos >= 0) {
+      //        m_buf.seek(oldPos);
+      //      }
 
-        return valueRes;
-      }
+      return toMap(res);
     }
   }
+
+  QVariantMap valueRes;
 
   if (type == "array") {
     QVariantMap fieldDescriptionNew = fieldDescription;
@@ -183,13 +182,15 @@ QVariantMap StructDecoder::decodeMap(const QVariantMap &field) {
     valueRes = decodeUnixtime(field);
   } else if (type == "raw") {
     valueRes = decodeRaw(field);
+  } else if (type == "skip") {
+    valueRes = decodeSkip(field);
   } else if (type == "bitfield") {
     valueRes = decodeBitfield(field);
   }
 
-  if (newPos >= 0) {
-    m_buf.seek(oldPos);
-  }
+  //  if (newPos >= 0) {
+  //    m_buf.seek(oldPos);
+  //  }
 
   return valueRes;
 }
@@ -421,19 +422,33 @@ QVariantMap StructDecoder::decodeRaw(const QVariantMap &field) {
   return toMap(res);
 }
 
+QVariantMap StructDecoder::decodeSkip(const QVariantMap &field) {
+  const QString &fieldName = field.firstKey();
+  const QVariantMap fieldDescription = field[fieldName].toMap();
+
+  const int size = fieldDescription["size"].toUInt();
+  if (size <= 0) {
+    return {};
+  }
+
+  m_ds.skipRawData(size);
+
+  QVariantMap res;
+  res["name"] = fieldName;
+  res["value"] = {};
+  setDecodedValue(fieldName, {});
+
+  return toMap(res);
+}
+
 QVariantMap StructDecoder::decodeCrc(const QVariantMap &field) {
   const QString &fieldName = field.firstKey();
   const QVariantMap fieldDescription = field[fieldName].toMap();
 
-  auto *buf = qobject_cast<QBuffer *>(m_ds.device());
-  if (buf == nullptr) {
-    return {};
-  }
-
   const QString type = fieldDescription["type"].toString();
   const QString mode = type.mid(3);
 
-  int to = buf->pos() - 1;
+  int to = m_buf.pos() - 1;
   if (fieldDescription.contains("include") &&
       fieldDescription["include"].toBool()) {
     const int size = mode.toInt() / CHAR_WIDTH;
@@ -462,7 +477,7 @@ QVariantMap StructDecoder::decodeCrc(const QVariantMap &field) {
     return {};
   }
 
-  const QByteArray &data = buf->buffer();
+  const QByteArray &data = m_buf.buffer();
   if (to >= data.size()) {
     return {};
   }
@@ -578,11 +593,6 @@ QVariantMap StructDecoder::decodeConst(const QVariantMap &field) {
 
 void StructDecoder::updateEncodedTo(const QString &name) {
   if (!m_decodedFields.contains(name)) {
-    return;
-  }
-
-  auto *buf = qobject_cast<QBuffer *>(m_ds.device());
-  if (buf == nullptr) {
     return;
   }
 

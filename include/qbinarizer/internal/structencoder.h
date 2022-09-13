@@ -43,11 +43,11 @@ protected:
 
   void encodeRaw(const QVariantMap &field, const QVariant &valueData);
 
+  void encodeSkip(const QVariantMap &field);
+
   void encodeCustom(const QVariantMap &field, const QVariant &valueData);
 
   void encodeStruct(const QVariantMap &field, const QVariant &valueData);
-
-  void encodeSkip(const QVariantMap &field);
 
   void encodeUnixtime(const QVariantMap &field, const QVariant &valueData);
 

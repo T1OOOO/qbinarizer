@@ -44,11 +44,12 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  const int size =
-      StructReflector::setValuesString<MyStructParent>(&parent, valueMap);
+  const int size = qbinarizer::StructReflector::setValuesString<MyStructParent>(
+      &parent, valueMap);
   qDebug() << "size: " << size;
 
-  const QString str = StructReflector::getValuesString<MyStructParent>(&parent);
+  const QString str =
+      qbinarizer::StructReflector::getValuesString<MyStructParent>(&parent);
   qDebug() << "MyStructParent: " << str;
 
   // return propertyList;
